@@ -1,5 +1,5 @@
 
-WALLET_ADDRESS = 'CL9panEAGB3A3kyCakk1KRafvyM1Dmmjkr1cFPzYmYXg'
+WALLET_ADDRESS = '8u4sztSet4wQcwjsF6MH41NqTGz7fJrA3DLbTwbekXmv'
 
 
 
