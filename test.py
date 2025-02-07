@@ -1,14 +1,15 @@
-import requests
-import json
+from moralis import sol_api
 
-response = requests.post(
-    "https://mainnet.helius-rpc.com/?api-key=97f3ea30-7f8b-4c10-a368-1160df74ed5b",
-    headers={"Content-Type":"application/json"},
-    json={"jsonrpc":"2.0","id":"test","method":"getAssetBatch","params":{"ids":["Gx2Uf4fmxuo1hjoRnCiNh8vLKPSY2zYYv52MXFU7R6TZ"]}}
+api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImY1NjlhZTRlLTdlNjAtNDRhYS04MDMxLWJmNDllZDcxMTU2NCIsIm9yZ0lkIjoiNDI5OTk1IiwidXNlcklkIjoiNDQyMzA2IiwidHlwZUlkIjoiNWM1MmZjMGMtMTgwMS00ZWRjLWI1NDAtN2ViNjk1MzBkMmFhIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3Mzg5Mjc0MTQsImV4cCI6NDg5NDY4NzQxNH0.xqc7QBe_NBQ5od0_NRlw3Z6xicCuv2DqRVtkVqS_r8o"
+params = {
+    "address": "9ak8pEr1HZxcBB2pZGPBFTuhw4VB8zUPLqmFiZKzpump",
+    "network": "mainnet",
+}
+
+result = sol_api.token.get_token_price(
+    api_key=api_key,
+    params=params,
 )
-data = response.json()
-parsed_data = json.loads(json.dumps(data))
-token_name = parsed_data['result'][0]['content']['metadata']['name']
-print(token_name)
-print(data)
-# print(type(data))
+
+print(result.get('nativePrice', {}).get('value'))
+print(result)

@@ -1,5 +1,9 @@
 {
   "devDependencies": {
     "prettier": "3.4.2"
+  },
+  "dependencies": {
+    "helius-sdk": "^1.4.2",
+    "moralis": "^2.27.2"
   }
 }

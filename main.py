@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 from config import API_KEY , WALLET_ADDRESS
 import requests, json
+from moralis import sol_api
 
 
 def get_Signaturelist(walletaddress) :
@@ -34,6 +35,19 @@ def get_transaction(signature):
     )
     data = response.json()
     return data
+def get_token_price(token_address):
+    api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImY1NjlhZTRlLTdlNjAtNDRhYS04MDMxLWJmNDllZDcxMTU2NCIsIm9yZ0lkIjoiNDI5OTk1IiwidXNlcklkIjoiNDQyMzA2IiwidHlwZUlkIjoiNWM1MmZjMGMtMTgwMS00ZWRjLWI1NDAtN2ViNjk1MzBkMmFhIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3Mzg5Mjc0MTQsImV4cCI6NDg5NDY4NzQxNH0.xqc7QBe_NBQ5od0_NRlw3Z6xicCuv2DqRVtkVqS_r8o"
+    params = {
+        "address": token_address,
+        "network": "mainnet",
+    }
+
+    result = sol_api.token.get_token_price(
+        api_key=api_key,
+        params=params,
+    )
+    return result.get('nativePrice', {}).get('value')
+
 def update_final_result( new_item, finalresult):
     token_address = new_item[0]['token_address']
     token_name = new_item[0]['token_name']
@@ -42,20 +56,28 @@ def update_final_result( new_item, finalresult):
     sell_amount = new_item[0].get('sell(Token)', 0)
     sol_buy = new_item[0].get('sell(Sol)', 0)
     sol_sell = new_item[0].get('buy(Sol)', 0)
+    sol_token_price = float(get_token_price(token_address)) / (1000000000)
+    print(sol_token_price)
 
     for item in finalresult:
         if item['token_address'] == token_address:
-            # Found existing token_address, update buy and sell
+            
             item['buy(Token)'] = item.get('buy(Token)', 0) + buy_amount
             item['sell(Token)'] = item.get('sell(Token)', 0) + sell_amount
             item['sol_buy'] = item.get('sol_buy', 0) + sol_buy
             item['sol_sell'] = item.get('sol_sell', 0) + sol_sell
-            item['sol_profit'] = item.get('sol_sell') - item.get('sol_buy')
-            item['profit_%'] = (item.get('sol_profit')/ item.get('sol_buy')) * 100
+            item['realized_sol'] = item.get('sol_sell') - item.get('sol_buy')
+            if item.get('sol_buy') != 0 :
+                item['profit_%'] = (item.get('realized_sol')/ item.get('sol_buy')) * 100
+            else : item['profit_%'] = 'NA'
+            if (item['buy(Token)'] - item['sell(Token)']) > 0 :
+                item['unrealized_sol'] = (item['buy(Token)'] - item['sell(Token)']) * sol_token_price
+            else : item['unrealized_sol'] = 0
+            item['profit_sol'] = item['realized_sol'] + item['unrealized_sol']
            
             return
 
-    # If token_address is not found, add a new entry with buy and sell
+   
     finalresult.append({
         'token_name' : token_name,
         'token_symbol' : token_symbol,
@@ -64,25 +86,17 @@ def update_final_result( new_item, finalresult):
         'sell(Token)': sell_amount,
         'sol_buy' : sol_buy,
         'sol_sell' : sol_sell,
-        'sol_profit' : sol_sell - sol_buy,
-        'profit_%' : 'NA'
+        'profit_%' : 'NA',
+        'realized_sol' : sol_sell - sol_buy,
+        'unrealized_sol' : (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else 0,
+        'profit_sol' : (sol_sell - sol_buy) + (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else sol_sell - sol_buy
         
         
     })
     
 def get_tokens_balances (account_address, transaction_data, signa):
     results = []
-    response = requests.post(
-        "https://mainnet.helius-rpc.com/?api-key=97f3ea30-7f8b-4c10-a368-1160df74ed5b",
-        headers={"Content-Type":"application/json"},
-        json={"jsonrpc":"2.0","id":"test","method":"getAssetBatch","params":{"ids":["Gx2Uf4fmxuo1hjoRnCiNh8vLKPSY2zYYv52MXFU7R6TZ"]}}
-    )
-    data = response.json()
-    parsed_data = json.loads(json.dumps(data))
-    token_name = parsed_data['result'][0]['content']['metadata']['name']
-    token_symbol = parsed_data['result'][0]['content']['metadata']['symbol']
-    # print(token_name)
-    
+        
     pre_token_balances = transaction_data.get('result', {}).get('meta', {}).get('preTokenBalances', [])
     post_token_balances = transaction_data.get('result', {}).get('meta', {}).get('postTokenBalances', [])
     pre_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[0]
@@ -97,6 +111,20 @@ def get_tokens_balances (account_address, transaction_data, signa):
         for post_balance in post_token_balances:
             if post_balance['owner'] == account_address:
                 token_address = post_balance['mint']
+                
+                
+                response = requests.post(
+                "https://mainnet.helius-rpc.com/?api-key=97f3ea30-7f8b-4c10-a368-1160df74ed5b",
+                headers={"Content-Type":"application/json"},
+                json={"jsonrpc":"2.0","id":"test","method":"getAssetBatch","params":{"ids":[token_address]}}
+                )
+                data = response.json()
+                parsed_data = json.loads(json.dumps(data))
+                token_name = parsed_data['result'][0]['content']['metadata']['name']
+                token_symbol = parsed_data['result'][0]['content']['metadata']['symbol']
+                # print(token_name)
+                
+                
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
                 # where = "Pump" if "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P" in transaction_data else "Swap"
                 # post_ui_amount = post_balance['uiTokenAmount']['uiAmount'] possible also
@@ -160,7 +188,7 @@ if __name__ == "__main__" :
     
     # for oneSignature in SignatureList:
     #     oneTransaction = get_transaction(oneSignature)
-    #     if len(finalData) < 5:
+    #     if len(finalData) < 20:
     #         tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
     #         if tokenInforBuySellAmount:
     #             print(tokenInforBuySellAmount)
@@ -172,12 +200,17 @@ if __name__ == "__main__" :
     # print("\n")
     # print("This is Final reports")
     # print("\n")
-    # print(finalresult)            
+    # print(finalresult)    
+    # with open('result.json', 'w') as json_file:
+    #     json.dump(finalresult, json_file, indent=4)        
     
     
 
-    # oneSignature = "4ni49UmSEyzUdk7ZMeVAxCESEEVytJv99cZ6d4DKHSbC6fRNofK7LERi24ZSm47sewjTskxdgZtCvcKMVvq2jDGB"
-    # print("4ni49UmSEyzUdk7ZMeVAxCESEEVytJv99cZ6d4DKHSbC6fRNofK7LERi24ZSm47sewjTskxdgZtCvcKMVvq2jDGB")
-    # oneTransaction = get_transaction(oneSignature)
-    # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
-    # print(oneTransaction)
+    oneSignature = "2gxv5Mf4qimf58mg1yF7Atc8ecmwR7DFAYcTd86MdbpWbxd8paByk1tda46pHzspR3WNtcjVPtMNdhr5si1pUk3T"
+    print("2gxv5Mf4qimf58mg1yF7Atc8ecmwR7DFAYcTd86MdbpWbxd8paByk1tda46pHzspR3WNtcjVPtMNdhr5si1pUk3T")
+    oneTransaction = get_transaction(oneSignature)
+    tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
+    # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('instructions', [])
+    # pair_address = pair_address[2]['accounts'][1]
+    # print(pair_address)
+    print(oneTransaction)
