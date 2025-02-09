@@ -68,7 +68,60 @@ def decode_bonding_curve_data(data):
         print(f"Error decoding data: {e}")
         return None
     
+def pump_price_calculate (accountKeys):
+    flag_pair_address = 0
+    for account_key in accountKeys:
+        pubkey_string = account_key['pubkey']
+        pubkey = Pubkey.from_string(pubkey_string)
 
+        account_info = get_account_info(pubkey)
+
+        if account_info:
+            owner_program_id = account_info.get("value").get("owner")
+            
+            owner_program_id_pubkey = Pubkey.from_string(owner_program_id)
+
+            if owner_program_id_pubkey == PUMP_BONDING_CURVE_PROGRAM_ID and flag_pair_address == 0:
+                
+                # print(account_info)
+                
+                # print(f"Pubkey {pubkey_string} is a bonding curve address. Processing...")
+                flag_pair_address = 1
+                # Get Account Data
+                account_data = account_info.get("value").get("data")[0]
+
+                # Decode the account data using the defined structure
+                decoded_data = decode_bonding_curve_data(account_data)
+
+                if decoded_data:
+                    virtual_sol_reserves = decoded_data["virtual_sol_reserves"] / 1000000000
+                    token_reserves = decoded_data["token_reserves"] / 1000000
+                    # print(virtual_sol_reserves)
+                    # print(token_reserves)
+
+                    # Calculate the price
+                    if token_reserves != 0:  # Prevent division by zero
+                        price = virtual_sol_reserves / token_reserves
+                        print("\n")
+                        print(f"Calculated Price: {price}")
+                        return price
+
+                        # Calculate the market cap (total supply is 1 billion)
+                        total_supply = 1_000_000_000
+                        market_cap = price * total_supply
+                        # print(f"Market Cap: {market_cap}")
+                    else:
+                        return 7070
+                        # print("Token reserves are zero. Cannot calculate price.")
+                else:
+                    continue
+                    # print("Failed to decode account data.")
+            else:
+                continue
+                # print(f"Pubkey {pubkey_string} is NOT a bonding curve address.")
+        else:
+            continue
+            # print(f"Failed to retrieve account info for {pubkey_string}.")   
 # Pump fun token price calculate end ==============
 
 def get_Signaturelist(walletaddress) :
@@ -195,57 +248,11 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
                 if where == "Pump":
-                    for account_key in accountKeys:
-                        flag_pair_address = 0
-                        pubkey_string = account_key['pubkey']
-                        pubkey = Pubkey.from_string(pubkey_string)
-
-                        account_info = get_account_info(pubkey)
-                        
-                        if flag_pair_address == 1 : 
-                            break
-
-                        if account_info:
-                            owner_program_id = account_info.get("value").get("owner")
-                            owner_program_id_pubkey = Pubkey.from_string(owner_program_id)
-
-                            if owner_program_id_pubkey == PUMP_BONDING_CURVE_PROGRAM_ID:
-                                flag_pair_address = 1
-                                print(f"Pubkey {pubkey_string} is a bonding curve address. Processing...")
-
-                                # Get Account Data
-                                account_data = account_info.get("value").get("data")[0]
-
-                                # Decode the account data using the defined structure
-                                decoded_data = decode_bonding_curve_data(account_data)
-
-                                if decoded_data:
-                                    virtual_sol_reserves = decoded_data["virtual_sol_reserves"] / 1000000000
-                                    token_reserves = decoded_data["token_reserves"] / 1000000
-                                    print(virtual_sol_reserves)
-                                    print(token_reserves)
-
-                                    # Calculate the price
-                                    if token_reserves != 0:  # Prevent division by zero
-                                        price = virtual_sol_reserves / token_reserves
-                                        print(f"Calculated Price: {price}")
-
-                                        # Calculate the market cap (total supply is 1 billion)
-                                        total_supply = 1_000_000_000
-                                        market_cap = price * total_supply
-                                        # print(f"Market Cap: {market_cap}")
-                                    else:
-                                        continue
-                                        # print("Token reserves are zero. Cannot calculate price.")
-                                else:
-                                    continue
-                                    # print("Failed to decode account data.")
-                            else:
-                                continue
-                                # print(f"Pubkey {pubkey_string} is NOT a bonding curve address. Owner: {owner_program_id}")
-                        else:
-                            continue
-                            # print(f"Failed to retrieve account info for {pubkey_string}.")   
+                    calculated_pump_token_price = pump_price_calculate(accountKeys)
+                    if calculated_pump_token_price == 7070 :
+                        continue
+                    
+                # print(calculated_pump_token_price)
                             
                                             
                                 
@@ -274,7 +281,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_name' : token_name,
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
-                            # 'token_price' : raydium_token_price,
+                            'token_price' : calculated_pump_token_price,
                             'pre_amount': pre_ui_amount,
                             'post_amount': post_ui_amount,
                             'buy(Token)': difference,
@@ -287,7 +294,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_name' : token_name,
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
-                            # 'token_price' : raydium_token_price,
+                            'token_price' : calculated_pump_token_price,
                             'pre_amount': pre_ui_amount,
                             'post_amount': post_ui_amount,
                             'sell(Token)': difference,
@@ -301,7 +308,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_name' : token_name,
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
-                            # 'token_price' : raydium_token_price,
+                            'token_price' : calculated_pump_token_price,
                             'pre_amount': 0,
                             'post_amount': post_ui_amount,
                             'buy(Token)': post_ui_amount,
@@ -322,7 +329,7 @@ if __name__ == "__main__" :
     
     for oneSignature in SignatureList:
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 3:
+        if len(finalData) < 50:
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
                 print(tokenInforBuySellAmount)
@@ -340,8 +347,8 @@ if __name__ == "__main__" :
     
     
 
-    # oneSignature = "YDAZgyGVspv6axjWtAKqyVwyoeLm6vPd8dgHCzZNoVogNaCV1xKdzg99xngf48CLYUQofZ16idshDrK8y8pyov1"
-    # print("YDAZgyGVspv6axjWtAKqyVwyoeLm6vPd8dgHCzZNoVogNaCV1xKdzg99xngf48CLYUQofZ16idshDrK8y8pyov1")
+    # oneSignature = "3eLRtLK5Pif4oYjVjQUmuz7s6jyg9B9KyBBh6hHypjFUdTwDYtcDqpn14VuMnMjdVe1bv2Z6CJPxe3u2Hvshfw7W"
+    # print("3eLRtLK5Pif4oYjVjQUmuz7s6jyg9B9KyBBh6hHypjFUdTwDYtcDqpn14VuMnMjdVe1bv2Z6CJPxe3u2Hvshfw7W")
     # oneTransaction = get_transaction(oneSignature)
     # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
     # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])

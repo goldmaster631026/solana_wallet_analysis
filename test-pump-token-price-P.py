@@ -57,7 +57,7 @@ def decode_bonding_curve_data(data):
         return None
 
     try:
-        virtual_sol_reserves = struct.unpack("<q", decoded_data[0:8])[0]  # '<q' is little-endian signed long long (8 bytes)
+        virtual_sol_reserves = struct.unpack("<q", decoded_data[16:24])[0]  # '<q' is little-endian signed long long (8 bytes)
         token_reserves = struct.unpack("<q", decoded_data[8:16])[0]  # '<q' is little-endian signed long long (8 bytes)
 
 

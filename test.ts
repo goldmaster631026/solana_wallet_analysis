@@ -59,7 +59,7 @@ async fetchPoolInfoByMint(mint) {
       console.error("Error fetching pool info by Mint:", error);
       return null;
     }
-  }
+}
 
   // Helper function to decode pool and market info
   async decodePoolAndMarketInfo(poolAccount, mint) {
