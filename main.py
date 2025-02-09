@@ -1,62 +1,75 @@
 import requests
 import pandas as pd
 from config import API_KEY , WALLET_ADDRESS
-import requests, json
+import requests, json, struct
+from base64 import b64decode
 from moralis import sol_api
 from solders.pubkey import Pubkey
-from construct import Struct, Int64ul
-from solana.rpc.api import Client
 
-RPC = "https://api.mainnet-beta.solana.com"  # Replace with your RPC endpoint
-client = Client(RPC)
-
-def get_bonding_curve_data(bonding_curve_address: str):
-    """
-    Fetches and parses bonding curve data from a Solana account.
-    """
-    try:
-        bonding_curve_pubkey = Pubkey.from_string(bonding_curve_address)
-        account_info = client.get_account_info(bonding_curve_pubkey)
-
-        if not account_info.value:
-            print(f"No account data available for {bonding_curve_address}")
-            return None
-
-        data = account_info.value.data
-        if not data:
-            print(f"No data in account {bonding_curve_address}")
-            return None
-
-        # Define the structure of the bonding curve data
-        bonding_curve_struct = Struct(
-            "virtualTokenReserves" / Int64ul,
-            "virtualSolReserves" / Int64ul,
-            "realTokenReserves" / Int64ul,
-            "realSolReserves" / Int64ul,
-            "tokenTotalSupply" / Int64ul
-        )
-
-        # Parse the account data
-        parsed_data = bonding_curve_struct.parse(bytes(data))
-        return parsed_data
-    except Exception as e:
-        print(f"Error fetching or parsing data: {e}")
+HELIUS_API_KEY = "97f3ea30-7f8b-4c10-a368-1160df74ed5b"
+PUMP_BONDING_CURVE_PROGRAM_ID = Pubkey.from_string("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+# Pump fun token price calculate start ============
+def get_account_info(account_pubkey: Pubkey):
+    url = f"https://rpc.helius.xyz/?api-key={HELIUS_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "getAccountInfo",
+        "params": [
+            str(account_pubkey),
+            {
+                "encoding": "base64",
+                "commitment": "confirmed",
+                "dataSlice": {
+                    "offset": 0,
+                    "length": 5000,  # Adjust length as needed
+                },
+            },
+        ],
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        return response.json().get("result")
+    else:
+        print(f"Error: {response.status_code} - {response.text}")
         return None
 
-# Example usage:
-bonding_curve_address = "63ooTk2JDjbqnuBjrCFx5BDUqv5eitvNUWJ8UpZXeuWi"  # Replace with the actual address
-data = get_bonding_curve_data(bonding_curve_address)
+# Account Data Structure (YOU MUST FILL THIS IN BASED ON THE PROGRAM'S DATA LAYOUT)
+# This is an EXAMPLE - REPLACE WITH THE ACTUAL STRUCTURE
+def decode_bonding_curve_data(data):
+    """
+    Decodes the base64 encoded bonding curve data.  This is a placeholder.
+    YOU MUST DETERMINE THE CORRECT DATA LAYOUT.
 
-if data:
-    print("Bonding Curve Data:")
-    print(f"  Virtual Token Reserves: {data.virtualTokenReserves}")
-    print(f"  Virtual SOL Reserves: {data.virtualSolReserves}")
-    print(f"  Real Token Reserves: {data.realTokenReserves}")
-    print(f"  Real SOL Reserves: {data.realSolReserves}")
-    print(f"  Token Total Supply: {data.tokenTotalSupply}")
-else:
-    print("Could not retrieve bonding curve data.")
+    Args:
+        data: The base64 encoded data string.
 
+    Returns:
+        A dictionary containing the decoded fields, or None if an error occurs.
+    """
+    decoded_data = b64decode(data)
+
+    # Example: Assuming the first 8 bytes are virtual SOL reserves (u64), and the next 8 bytes are token reserves (u64)
+    if len(decoded_data) < 16:
+        print("Error: Not enough data in the account.")
+        return None
+
+    try:
+        virtual_sol_reserves = struct.unpack("<q", decoded_data[16:24])[0]  # '<q' is little-endian signed long long (8 bytes)
+        token_reserves = struct.unpack("<q", decoded_data[8:16])[0]  # '<q' is little-endian signed long long (8 bytes)
+
+
+        return {
+            "virtual_sol_reserves": virtual_sol_reserves,
+            "token_reserves": token_reserves,
+        }
+    except struct.error as e:
+        print(f"Error decoding data: {e}")
+        return None
+    
+
+# Pump fun token price calculate end ==============
 
 def get_Signaturelist(walletaddress) :
     
@@ -176,60 +189,74 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 parsed_data = json.loads(json.dumps(data))
                 token_name = parsed_data['result'][0]['content']['metadata']['name']
                 token_symbol = parsed_data['result'][0]['content']['metadata']['symbol']
+                accountKeys = transaction_data.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
                 # print(token_name)
                 
                 
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
+                if where == "Pump":
+                    for account_key in accountKeys:
+                        flag_pair_address = 0
+                        pubkey_string = account_key['pubkey']
+                        pubkey = Pubkey.from_string(pubkey_string)
 
-                # post_ui_amount = post_balance['uiTokenAmount']['uiAmount'] possible also
-                # post_ui_amount = post_balance['uiTokenAmount'].get('uiAmount', 0)
-                
-                
+                        account_info = get_account_info(pubkey)
+                        
+                        if flag_pair_address == 1 : 
+                            break
+
+                        if account_info:
+                            owner_program_id = account_info.get("value").get("owner")
+                            owner_program_id_pubkey = Pubkey.from_string(owner_program_id)
+
+                            if owner_program_id_pubkey == PUMP_BONDING_CURVE_PROGRAM_ID:
+                                flag_pair_address = 1
+                                print(f"Pubkey {pubkey_string} is a bonding curve address. Processing...")
+
+                                # Get Account Data
+                                account_data = account_info.get("value").get("data")[0]
+
+                                # Decode the account data using the defined structure
+                                decoded_data = decode_bonding_curve_data(account_data)
+
+                                if decoded_data:
+                                    virtual_sol_reserves = decoded_data["virtual_sol_reserves"] / 1000000000
+                                    token_reserves = decoded_data["token_reserves"] / 1000000
+                                    print(virtual_sol_reserves)
+                                    print(token_reserves)
+
+                                    # Calculate the price
+                                    if token_reserves != 0:  # Prevent division by zero
+                                        price = virtual_sol_reserves / token_reserves
+                                        print(f"Calculated Price: {price}")
+
+                                        # Calculate the market cap (total supply is 1 billion)
+                                        total_supply = 1_000_000_000
+                                        market_cap = price * total_supply
+                                        # print(f"Market Cap: {market_cap}")
+                                    else:
+                                        continue
+                                        # print("Token reserves are zero. Cannot calculate price.")
+                                else:
+                                    continue
+                                    # print("Failed to decode account data.")
+                            else:
+                                continue
+                                # print(f"Pubkey {pubkey_string} is NOT a bonding curve address. Owner: {owner_program_id}")
+                        else:
+                            continue
+                            # print(f"Failed to retrieve account info for {pubkey_string}.")   
+                            
+                                            
+                                
                 # Raydium token price calculate start ==========
-                # if  where != "Pump" :
-                #     pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-                #     pair_address1 = pair_address[5]['pubkey']
-                #     pair_address2 = pair_address[6]['pubkey']
-                #     print("baseVault : ", pair_address1)    
-                #     print("quoteVault : ",pair_address2)
-                    
-                #     response = requests.post(
-                #     "https://mainnet.helius-rpc.com/?api-key=97f3ea30-7f8b-4c10-a368-1160df74ed5b",
-                #     headers={"Content-Type":"application/json"},
-                #     json={"jsonrpc":"2.0","id":1,"method":"getTokenAccountBalance","params":[pair_address1]}
-                #     )
-                #     pair_address1_data = response.json()
-                #     flag = 1 if pair_address1_data['result']['value']['uiAmount'] else 0
-                #     if flag == 1 :
-                #         baseamount = pair_address1_data['result']['value']['uiAmount']
-                #     response = requests.post(
-                #     "https://mainnet.helius-rpc.com/?api-key=97f3ea30-7f8b-4c10-a368-1160df74ed5b",
-                #     headers={"Content-Type":"application/json"},
-                #     json={"jsonrpc":"2.0","id":1,"method":"getTokenAccountBalance","params":[pair_address2]}
-                #     )
-                #     pair_address2_data = response.json()
-                #     flag = 1 if pair_address2_data['result']['value']['amount'] else 0
-                #     if flag == 1 :
-                #         quoteamount = pair_address2_data['result']['value']['amount']
                 
-                #     # print(baseamount)
-                #     # print(quoteamount)
-                #     raydium_token_price = (int(quoteamount)) / 1000000000 / (float(baseamount))
-                #     print("calculated" , raydium_token_price)
-            
                 
                 # Raydium token price calculate End ============
                 
 # sol - 3
 # token - 4
-                # Pump fun token price calculate start ============
-                if where == "Pump" :
-                    pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-                    pair_address = pair_address[2]['pubkey']
-                    print(pair_address)
-                    
-                
-                # Pump fun token price calculate end ==============
+
                 
                 post_ui_amount = post_balance['uiTokenAmount']['uiAmount'] if post_balance['uiTokenAmount']['uiAmount'] is not None else 0
 
@@ -293,36 +320,36 @@ if __name__ == "__main__" :
     SignatureList = get_Signaturelist(walletaddress)
  
     
-    # for oneSignature in SignatureList:
-    #     oneTransaction = get_transaction(oneSignature)
-    #     if len(finalData) < 20:
-    #         tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
-    #         if tokenInforBuySellAmount:
-    #             print(tokenInforBuySellAmount)
-    #             finalData.append(tokenInforBuySellAmount)
-    #             update_final_result(tokenInforBuySellAmount, finalresult)
+    for oneSignature in SignatureList:
+        oneTransaction = get_transaction(oneSignature)
+        if len(finalData) < 3:
+            tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
+            if tokenInforBuySellAmount:
+                print(tokenInforBuySellAmount)
+                finalData.append(tokenInforBuySellAmount)
+                update_final_result(tokenInforBuySellAmount, finalresult)
                 
-    #     else:
-    #         break
-    # print("\n")
-    # print("This is Final reports")
-    # print("\n")
-    # print(finalresult)    
-    # with open('result.json', 'w') as json_file:
-    #     json.dump(finalresult, json_file, indent=4)        
+        else:
+            break
+    print("\n")
+    print("This is Final reports")
+    print("\n")
+    print(finalresult)    
+    with open('result.json', 'w') as json_file:
+        json.dump(finalresult, json_file, indent=4)        
     
     
 
-    oneSignature = "4dJpcadfwQo4GuPPW1VVEeCLShCaz4poGAhypPqem5uH2VVQkpFbR1KaMefVtydiXv4v8Q1uWqzWcb2zZu1ZQZNf"
-    print("4dJpcadfwQo4GuPPW1VVEeCLShCaz4poGAhypPqem5uH2VVQkpFbR1KaMefVtydiXv4v8Q1uWqzWcb2zZu1ZQZNf")
-    oneTransaction = get_transaction(oneSignature)
-    # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
-    # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-    # pair_address1 = pair_address[5]['pubkey']
-    # pair_address2 = pair_address[6]['pubkey']
-    # print("baseVault : ", pair_address1)    
-    # print("quoteVault : ",pair_address2)
-    print(oneTransaction)
+    # oneSignature = "YDAZgyGVspv6axjWtAKqyVwyoeLm6vPd8dgHCzZNoVogNaCV1xKdzg99xngf48CLYUQofZ16idshDrK8y8pyov1"
+    # print("YDAZgyGVspv6axjWtAKqyVwyoeLm6vPd8dgHCzZNoVogNaCV1xKdzg99xngf48CLYUQofZ16idshDrK8y8pyov1")
+    # oneTransaction = get_transaction(oneSignature)
+    # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
+    # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
+    # # pair_address1 = pair_address[5]['pubkey']
+    # # pair_address2 = pair_address[6]['pubkey']
+    # # print("baseVault : ", pair_address1)    
+    # # print("quoteVault : ",pair_address2)
+    # print(oneTransaction)
     
     
     

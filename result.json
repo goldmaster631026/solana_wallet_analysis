@@ -1,15 +1,15 @@
 [
     {
-        "token_name": "GIGAPNUTRUMP",
-        "token_symbol": "GIGAPT",
-        "token_address": "Gx2Uf4fmxuo1hjoRnCiNh8vLKPSY2zYYv52MXFU7R6TZ",
-        "buy(Token)": 402960.952334,
-        "sell(Token)": 497044.73817799997,
-        "sol_buy": 0.131201325,
-        "sol_sell": 0.145308013,
-        "profit_%": 10.751940195725924,
-        "realized_sol": 0.014106688000000006,
+        "token_name": "PEPE GIGACHAD",
+        "token_symbol": "PEPECHAD",
+        "token_address": "HkqD272aXKEyLnhKKsf9eZ94qKJKeYvqbUprXtbQpump",
+        "buy(Token)": 3977626.163981,
+        "sell(Token)": 7171310.718723999,
+        "sol_buy": 0.2525,
+        "sol_sell": 0.457705186,
+        "profit_%": 81.2693805940594,
+        "realized_sol": 0.20520518599999998,
         "unrealized_sol": 0,
-        "profit_sol": 0.014106688000000006
+        "profit_sol": 0.20520518599999998
     }
 ]

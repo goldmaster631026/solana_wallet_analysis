@@ -11,5 +11,5 @@ result = sol_api.token.get_token_price(
     params=params,
 )
 
-print(result.get('nativePrice', {}).get('value'))
-print(result)
+print(float(result.get('nativePrice', {}).get('value')) / 1000000000)
+# print(result)
