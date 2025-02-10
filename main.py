@@ -6,6 +6,7 @@ from base64 import b64decode
 from moralis import sol_api
 from solders.pubkey import Pubkey
 
+
 HELIUS_API_KEY = "97f3ea30-7f8b-4c10-a368-1160df74ed5b"
 PUMP_BONDING_CURVE_PROGRAM_ID = Pubkey.from_string("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
 # Pump fun token price calculate start ============
@@ -123,6 +124,86 @@ def pump_price_calculate (accountKeys):
             continue
             # print(f"Failed to retrieve account info for {pubkey_string}.")   
 # Pump fun token price calculate end ==============
+
+
+
+# Raydium token price calculate start ==========
+
+def get_account_info_raydium(account_address):
+    """
+    Retrieves account information from the Solana Devnet.
+
+    Args:
+        account_address (str): The public key of the account to query.
+
+    Returns:
+        dict: The account information as a dictionary, or None if an error occurs.
+    """
+    url = "https://api.mainnet-beta.solana.com"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "getAccountInfo",
+        "params": [
+            account_address,
+            {
+                "encoding": "jsonParsed",  # Use jsonParsed for easier data access
+                "commitment": "processed" #commitment level
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, data=json.dumps(data))
+        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+        result = response.json()
+
+        if result.get("error"):
+            print(f"Error from Solana API: {result['error']}")
+            return None
+
+        return result.get("result")  # Return the result part of the json
+    except requests.exceptions.RequestException as e:
+        print(f"Request failed: {e}")
+        return None
+    except json.JSONDecodeError as e:
+        print(f"Failed to decode JSON response: {e}")
+        return None
+    
+def get_owner_address(account_address):
+    """
+    Retrieves the owner address of a Solana account.
+
+    Args:
+        account_address (str): The public key of the account.
+
+    Returns:
+        str: The owner address as a string, or None if not found or an error occurs.
+    """
+    
+    account_info = get_account_info_raydium(account_address)
+
+    if account_info and account_info.get("value"):
+        # return account_info["value"]
+        return account_info["value"]["owner"]
+    else:
+        # print(f"Could not retrieve account info for address {account_address} or account doesn't exist.")
+        return None
+
+def export_owner_address (accountKeys):
+
+    for account in accountKeys :
+        account = account['pubkey']
+        owner_address = get_owner_address(account)
+
+        if owner_address:
+            print(f"The owner address of account {account} is: {owner_address}")
+        else:
+            continue
+            # print(f"Failed to retrieve the owner address for account {account_address}.")
+
+# Raydium token price calculate End ============
 
 def get_Signaturelist(walletaddress) :
     
@@ -247,19 +328,21 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 
                 
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
+                if search_substring(transaction_data, '75kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8') :
+                    where = "Raydium"
                 if where == "Pump":
                     calculated_pump_token_price = pump_price_calculate(accountKeys)
                     if calculated_pump_token_price == 7070 :
                         continue
                     
-                # print(calculated_pump_token_price)
+                if where == "Raydium" :
+                    export_owner_address(accountKeys)
+                    
+                    
                             
                                             
                                 
-                # Raydium token price calculate start ==========
-                
-                
-                # Raydium token price calculate End ============
+
                 
 # sol - 3
 # token - 4
@@ -281,7 +364,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_name' : token_name,
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
-                            'token_price' : calculated_pump_token_price,
+                            # 'token_price' : calculated_pump_token_price,
                             'pre_amount': pre_ui_amount,
                             'post_amount': post_ui_amount,
                             'buy(Token)': difference,
@@ -294,7 +377,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_name' : token_name,
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
-                            'token_price' : calculated_pump_token_price,
+                            # 'token_price' : calculated_pump_token_price,
                             'pre_amount': pre_ui_amount,
                             'post_amount': post_ui_amount,
                             'sell(Token)': difference,
@@ -308,7 +391,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_name' : token_name,
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
-                            'token_price' : calculated_pump_token_price,
+                            # 'token_price' : calculated_pump_token_price,
                             'pre_amount': 0,
                             'post_amount': post_ui_amount,
                             'buy(Token)': post_ui_amount,
@@ -329,7 +412,7 @@ if __name__ == "__main__" :
     
     for oneSignature in SignatureList:
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 50:
+        if len(finalData) < 1:
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
                 print(tokenInforBuySellAmount)
@@ -347,15 +430,15 @@ if __name__ == "__main__" :
     
     
 
-    # oneSignature = "3eLRtLK5Pif4oYjVjQUmuz7s6jyg9B9KyBBh6hHypjFUdTwDYtcDqpn14VuMnMjdVe1bv2Z6CJPxe3u2Hvshfw7W"
-    # print("3eLRtLK5Pif4oYjVjQUmuz7s6jyg9B9KyBBh6hHypjFUdTwDYtcDqpn14VuMnMjdVe1bv2Z6CJPxe3u2Hvshfw7W")
+    # oneSignature = "42185AwYQehkh7iQkQ5ehRSkcmrvhRgmeetFiVjcQv4VK9uVRC7AZ4uVJSgBkfr7qCZs5BrJvBnJHfKL4MpCsdtG"
+    # print("42185AwYQehkh7iQkQ5ehRSkcmrvhRgmeetFiVjcQv4VK9uVRC7AZ4uVJSgBkfr7qCZs5BrJvBnJHfKL4MpCsdtG")
     # oneTransaction = get_transaction(oneSignature)
-    # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
-    # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-    # # pair_address1 = pair_address[5]['pubkey']
-    # # pair_address2 = pair_address[6]['pubkey']
-    # # print("baseVault : ", pair_address1)    
-    # # print("quoteVault : ",pair_address2)
+    # # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
+    # # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
+    # # # pair_address1 = pair_address[5]['pubkey']
+    # # # pair_address2 = pair_address[6]['pubkey']
+    # # # print("baseVault : ", pair_address1)    
+    # # # print("quoteVault : ",pair_address2)
     # print(oneTransaction)
     
     
