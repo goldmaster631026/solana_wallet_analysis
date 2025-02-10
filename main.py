@@ -324,7 +324,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 token_name = parsed_data['result'][0]['content']['metadata']['name']
                 token_symbol = parsed_data['result'][0]['content']['metadata']['symbol']
                 accountKeys = transaction_data.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-                # print(token_name)
+                print(token_name)
                 
                 
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
@@ -338,10 +338,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 if where == "Raydium" :
                     export_owner_address(accountKeys)
                     
-                    
-                            
-                                            
-                                
+              
 
                 
 # sol - 3
@@ -412,7 +409,7 @@ if __name__ == "__main__" :
     
     for oneSignature in SignatureList:
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 1:
+        if len(finalData) < 500:
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
                 print(tokenInforBuySellAmount)
