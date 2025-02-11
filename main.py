@@ -257,7 +257,7 @@ def update_final_result( new_item, finalresult):
     sol_buy = new_item[0].get('sell(Sol)', 0)
     sol_sell = new_item[0].get('buy(Sol)', 0)
     sol_token_price = float(get_token_price_from_m(token_address)) / (1000000000)
-    # print("mprice " , sol_token_price)
+    print("mprice " , sol_token_price)
     # sol_token_price_calculated = new_item[0].get('token_price',0)
 
     for item in finalresult:
@@ -300,14 +300,13 @@ def get_tokens_balances (account_address, transaction_data, signa):
         
     pre_token_balances = transaction_data.get('result', {}).get('meta', {}).get('preTokenBalances', [])
     post_token_balances = transaction_data.get('result', {}).get('meta', {}).get('postTokenBalances', [])
-
+    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[0]
+    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[0]
     # fee_balance = transaction_data.get('result', {}).get('meta', {}).get('fee')
     # print(post_balance)
     # print(pre_balance)
     # print(fee_balance)
-    # pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[3]
-    # post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[3]
-    # sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
+    sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
     # print(sol_balance)
     if post_token_balances :
         for post_balance in post_token_balances:
@@ -330,22 +329,16 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
                 if search_substring(transaction_data, '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8') :
                     where = "Raydium"
-                if where == "Pump":
-                    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[3]
-                    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[3]
+                # if where == "Pump":
                 #     calculated_pump_token_price = pump_price_calculate(accountKeys)
                 #     if calculated_pump_token_price == 7070 :
                 #         continue
                     
                 if where == "Raydium" :
-                    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[4]
-                    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[4]
+                    # pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[4]
+                    # post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[4]
+                    # sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
                     
-                if where == "Swap":
-                    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[4]
-                    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[4]
-                
-                sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)   
               
 
                 
