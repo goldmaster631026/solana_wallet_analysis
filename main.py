@@ -235,7 +235,7 @@ def get_transaction(signature):
     )
     data = response.json()
     return data
-def get_token_price_from_moralis(token_address):
+def get_token_price_from_m(token_address):
     api_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6ImY1NjlhZTRlLTdlNjAtNDRhYS04MDMxLWJmNDllZDcxMTU2NCIsIm9yZ0lkIjoiNDI5OTk1IiwidXNlcklkIjoiNDQyMzA2IiwidHlwZUlkIjoiNWM1MmZjMGMtMTgwMS00ZWRjLWI1NDAtN2ViNjk1MzBkMmFhIiwidHlwZSI6IlBST0pFQ1QiLCJpYXQiOjE3Mzg5Mjc0MTQsImV4cCI6NDg5NDY4NzQxNH0.xqc7QBe_NBQ5od0_NRlw3Z6xicCuv2DqRVtkVqS_r8o"
     params = {
         "address": token_address,
@@ -256,8 +256,8 @@ def update_final_result( new_item, finalresult):
     sell_amount = new_item[0].get('sell(Token)', 0)
     sol_buy = new_item[0].get('sell(Sol)', 0)
     sol_sell = new_item[0].get('buy(Sol)', 0)
-    sol_token_price = float(get_token_price_from_moralis(token_address)) / (1000000000)
-    print("moralis price " , sol_token_price)
+    sol_token_price = float(get_token_price_from_m(token_address)) / (1000000000)
+    # print("mprice " , sol_token_price)
     # sol_token_price_calculated = new_item[0].get('token_price',0)
 
     for item in finalresult:
@@ -300,19 +300,19 @@ def get_tokens_balances (account_address, transaction_data, signa):
         
     pre_token_balances = transaction_data.get('result', {}).get('meta', {}).get('preTokenBalances', [])
     post_token_balances = transaction_data.get('result', {}).get('meta', {}).get('postTokenBalances', [])
-    pre_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[0]
-    post_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[0]
-    fee_balance = transaction_data.get('result', {}).get('meta', {}).get('fee')
+
+    # fee_balance = transaction_data.get('result', {}).get('meta', {}).get('fee')
     # print(post_balance)
     # print(pre_balance)
     # print(fee_balance)
-    sol_balance = (abs(post_balance - pre_balance) - fee_balance)/ (1000000000)
+    # pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[3]
+    # post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[3]
+    # sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
     # print(sol_balance)
     if post_token_balances :
         for post_balance in post_token_balances:
             if post_balance['owner'] == account_address:
                 token_address = post_balance['mint']
-                
                 
                 response = requests.post(
                 "https://mainnet.helius-rpc.com/?api-key=97f3ea30-7f8b-4c10-a368-1160df74ed5b",
@@ -324,20 +324,28 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 token_name = parsed_data['result'][0]['content']['metadata']['name']
                 token_symbol = parsed_data['result'][0]['content']['metadata']['symbol']
                 accountKeys = transaction_data.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-                print(token_name)
+                # print(token_name)
                 
                 
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
-                if search_substring(transaction_data, '75kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8') :
+                if search_substring(transaction_data, '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8') :
                     where = "Raydium"
                 if where == "Pump":
-                    calculated_pump_token_price = pump_price_calculate(accountKeys)
-                    if calculated_pump_token_price == 7070 :
-                        continue
+                    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[3]
+                    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[3]
+                #     calculated_pump_token_price = pump_price_calculate(accountKeys)
+                #     if calculated_pump_token_price == 7070 :
+                #         continue
                     
                 if where == "Raydium" :
-                    export_owner_address(accountKeys)
+                    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[4]
+                    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[4]
                     
+                if where == "Swap":
+                    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[4]
+                    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[4]
+                
+                sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)   
               
 
                 
@@ -362,8 +370,8 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
                             # 'token_price' : calculated_pump_token_price,
-                            'pre_amount': pre_ui_amount,
-                            'post_amount': post_ui_amount,
+                            # 'pre_amount': pre_ui_amount,
+                            # 'post_amount': post_ui_amount,
                             'buy(Token)': difference,
                             'sell(Sol)' : sol_balance,
                             'on' : where
@@ -375,8 +383,8 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
                             # 'token_price' : calculated_pump_token_price,
-                            'pre_amount': pre_ui_amount,
-                            'post_amount': post_ui_amount,
+                            # 'pre_amount': pre_ui_amount,
+                            # 'post_amount': post_ui_amount,
                             'sell(Token)': difference,
                             'buy(Sol)' : sol_balance,
                             'on' : where
@@ -389,8 +397,8 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             'token_symbol' : token_symbol,
                             'token_address': token_address,
                             # 'token_price' : calculated_pump_token_price,
-                            'pre_amount': 0,
-                            'post_amount': post_ui_amount,
+                            # 'pre_amount': 0,
+                            # 'post_amount': post_ui_amount,
                             'buy(Token)': post_ui_amount,
                             'sell(Sol)' : sol_balance,
                             'on' : 'Pump'
@@ -406,12 +414,17 @@ if __name__ == "__main__" :
     walletaddress = WALLET_ADDRESS
     SignatureList = get_Signaturelist(walletaddress)
  
-    
+    k = 1
     for oneSignature in SignatureList:
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 500:
+        if len(finalData) < 30:
+            
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
+                print("")
+                print(k)
+                # print("")
+                k += 1
                 print(tokenInforBuySellAmount)
                 finalData.append(tokenInforBuySellAmount)
                 update_final_result(tokenInforBuySellAmount, finalresult)
@@ -427,8 +440,8 @@ if __name__ == "__main__" :
     
     
 
-    # oneSignature = "42185AwYQehkh7iQkQ5ehRSkcmrvhRgmeetFiVjcQv4VK9uVRC7AZ4uVJSgBkfr7qCZs5BrJvBnJHfKL4MpCsdtG"
-    # print("42185AwYQehkh7iQkQ5ehRSkcmrvhRgmeetFiVjcQv4VK9uVRC7AZ4uVJSgBkfr7qCZs5BrJvBnJHfKL4MpCsdtG")
+    # oneSignature = "52DkrDFUb5PCu96btwuRAmSqPE21wGfAUqtBKyTmSgkEn22P8dXV5TTutF9VM43D3zHP7SzvYxTz7ihaefKxvxFf"
+    # print("52DkrDFUb5PCu96btwuRAmSqPE21wGfAUqtBKyTmSgkEn22P8dXV5TTutF9VM43D3zHP7SzvYxTz7ihaefKxvxFf")
     # oneTransaction = get_transaction(oneSignature)
     # # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
     # # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])

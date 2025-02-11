@@ -1,8 +1,9 @@
 
-WALLET_ADDRESS = 'CL9panEAGB3A3kyCakk1KRafvyM1Dmmjkr1cFPzYmYXg'
+WALLET_ADDRESS = '2LFxXCiKRE3tq3xUivAMwjbRwJTX7cufq6YYvwgQeBHX'
 # 8u4sztSet4wQcwjsF6MH41NqTGz7fJrA3DLbTwbekXmv
 # EMKrEDuahN9iWafms47x5fPqZYTh5XtpSsjRz3gLi3Pg
 # CL9panEAGB3A3kyCakk1KRafvyM1Dmmjkr1cFPzYmYXg
+# 2LFxXCiKRE3tq3xUivAMwjbRwJTX7cufq6YYvwgQeBHX
 
 
 # from solana.rpc.api import Client
