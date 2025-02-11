@@ -334,7 +334,7 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 #     if calculated_pump_token_price == 7070 :
                 #         continue
                     
-                if where == "Raydium" :
+                # if where == "Raydium" :
                     # pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[4]
                     # post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[4]
                     # sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
