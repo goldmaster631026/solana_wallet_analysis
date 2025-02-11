@@ -257,12 +257,12 @@ def update_final_result( new_item, finalresult):
     sol_buy = new_item[0].get('sell(Sol)', 0)
     sol_sell = new_item[0].get('buy(Sol)', 0)
     sol_token_price = float(get_token_price_from_m(token_address)) / (1000000000)
-    print("mprice " , sol_token_price)
+    # print("mprice " , sol_token_price)
     # sol_token_price_calculated = new_item[0].get('token_price',0)
-
+    flag = 0
     for item in finalresult:
         if item['token_address'] == token_address:
-            
+            flag = 1
             item['buy(Token)'] = item.get('buy(Token)', 0) + buy_amount
             item['sell(Token)'] = item.get('sell(Token)', 0) + sell_amount
             item['sol_buy'] = item.get('sol_buy', 0) + sol_buy
@@ -276,22 +276,22 @@ def update_final_result( new_item, finalresult):
             else : item['unrealized_sol'] = 0
             item['profit_sol'] = item['realized_sol'] + item['unrealized_sol']
            
-            return
+            # return
 
-   
-    finalresult.append({
-        'token_name' : token_name,
-        'token_symbol' : token_symbol,
-        'token_address': token_address,
-        'buy(Token)': buy_amount,
-        'sell(Token)': sell_amount,
-        'sol_buy' : sol_buy,
-        'sol_sell' : sol_sell,
-        'profit_%' : 'NA',
-        'realized_sol' : sol_sell - sol_buy,
-        'unrealized_sol' : (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else 0,
-        'profit_sol' : (sol_sell - sol_buy) + (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else sol_sell - sol_buy
-        
+    if flag == 0 :
+        finalresult.append({
+            'token_name' : token_name,
+            'token_symbol' : token_symbol,
+            'token_address': token_address,
+            'buy(Token)': buy_amount,
+            'sell(Token)': sell_amount,
+            'sol_buy' : sol_buy,
+            'sol_sell' : sol_sell,
+            'profit_%' : 'NA',
+            'realized_sol' : sol_sell - sol_buy,
+            'unrealized_sol' : (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else 0,
+            'profit_sol' : (sol_sell - sol_buy) + (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else sol_sell - sol_buy
+            
         
     })
     
@@ -410,7 +410,7 @@ if __name__ == "__main__" :
     k = 1
     for oneSignature in SignatureList:
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 30:
+        if len(finalData) < 10:
             
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
