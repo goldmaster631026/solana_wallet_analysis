@@ -408,7 +408,7 @@ if __name__ == "__main__" :
     k = 1
     for oneSignature in SignatureList:
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 30:
+        if len(finalData) < 10:
             
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:

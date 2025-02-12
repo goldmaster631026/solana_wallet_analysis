@@ -1,23 +1,3 @@
-# from solders.pubkey import Pubkey
-
-# PUMP_PROGRAM_ID = Pubkey.from_string("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-# PUMP_CURVE_SEED = b"bonding-curve"
-
-# def find_pump_curve_address(token_mint: Pubkey) -> Pubkey:
-#     """
-#     Calculates the Pump.fun bonding curve address for a given token mint.
-#     """
-#     curve_address, _ = Pubkey.find_program_address(
-#         [PUMP_CURVE_SEED, bytes(token_mint)],
-#         PUMP_PROGRAM_ID,
-#     )
-#     return curve_address
-
-# # Token mint address
-# token_mint_address = Pubkey.from_string("EMNtsQExBsMB6znWCCgr4PpgD5yyvy3XumAKvcHnpump")
-# curve_address = find_pump_curve_address(token_mint_address)
-# print(f"The bonding curve address is: {curve_address}")
-
 import requests
 import json
 
@@ -84,4 +64,36 @@ if sol_balance_changes:
         print(f"Account: {account}, Change: {change:.4f} SOL")
 else:
     print("Failed to retrieve SOL balance changes.")
+
+
+
+
+
+
+
+
+
+
+
+
+
+# from solders.pubkey import Pubkey
+
+# PUMP_PROGRAM_ID = Pubkey.from_string("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
+# PUMP_CURVE_SEED = b"bonding-curve"
+
+# def find_pump_curve_address(token_mint: Pubkey) -> Pubkey:
+#     """
+#     Calculates the Pump.fun bonding curve address for a given token mint.
+#     """
+#     curve_address, _ = Pubkey.find_program_address(
+#         [PUMP_CURVE_SEED, bytes(token_mint)],
+#         PUMP_PROGRAM_ID,
+#     )
+#     return curve_address
+
+# # Token mint address
+# token_mint_address = Pubkey.from_string("EMNtsQExBsMB6znWCCgr4PpgD5yyvy3XumAKvcHnpump")
+# curve_address = find_pump_curve_address(token_mint_address)
+# print(f"The bonding curve address is: {curve_address}")
 
