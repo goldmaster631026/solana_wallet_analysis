@@ -5,7 +5,36 @@ import requests, json, struct
 from base64 import b64decode
 from moralis import sol_api
 from solders.pubkey import Pubkey
+import datetime
 
+def timestamp_to_utc(timestamp):
+    """Converts a Unix timestamp to a UTC datetime object.
+
+    Args:
+        timestamp: An integer representing the number of seconds since the Unix epoch.
+
+    Returns:
+        A datetime object representing the UTC time, or None if the timestamp is invalid.
+    """
+    try:
+        utc_datetime = datetime.datetime.utcfromtimestamp(timestamp)
+        return utc_datetime
+    except (TypeError, ValueError):
+        return None
+
+def format_utc_datetime(utc_datetime):
+    """Formats a UTC datetime object into a readable string.
+
+    Args:
+        utc_datetime: A datetime object representing the UTC time.
+
+    Returns:
+        A formatted string representing the UTC time, or None if the input is invalid.
+    """
+    if not isinstance(utc_datetime, datetime.datetime):
+        return None
+
+    return utc_datetime.strftime('%Y-%m-%d %H:%M:%S UTC')
 
 HELIUS_API_KEY = "97f3ea30-7f8b-4c10-a368-1160df74ed5b"
 PUMP_BONDING_CURVE_PROGRAM_ID = Pubkey.from_string("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
@@ -252,10 +281,12 @@ def update_final_result( new_item, finalresult):
     token_address = new_item[0]['token_address']
     token_name = new_item[0]['token_name']
     token_symbol = new_item[0]['token_symbol']
+    time = new_item[0]['time']
     buy_amount = new_item[0].get('buy(Token)', 0)
     sell_amount = new_item[0].get('sell(Token)', 0)
     sol_buy = new_item[0].get('sell(Sol)', 0)
     sol_sell = new_item[0].get('buy(Sol)', 0)
+    action = new_item[0].get('action')
     sol_token_price = float(get_token_price_from_m(token_address)) / (1000000000)
     # print("mprice " , sol_token_price)
     # sol_token_price_calculated = new_item[0].get('token_price',0)
@@ -268,6 +299,17 @@ def update_final_result( new_item, finalresult):
             item['sol_buy'] = item.get('sol_buy', 0) + sol_buy
             item['sol_sell'] = item.get('sol_sell', 0) + sol_sell
             item['realized_sol'] = item.get('sol_sell') - item.get('sol_buy')
+            
+            buy_count, sell_count = map (int, item['count'].split('/'))
+            if action == 'buy' :
+                buy_count += 1
+            if action == 'sell' :
+                sell_count +=1
+            item['count'] = f"{buy_count}/{sell_count}"
+           
+            print("")
+            
+            
             if item.get('sol_buy') != 0 :
                 item['profit_%'] = (item.get('realized_sol')/ item.get('sol_buy')) * 100
             else : item['profit_%'] = 'NA'
@@ -279,7 +321,16 @@ def update_final_result( new_item, finalresult):
             # return
 
     if flag == 0 :
+        if action == 'buy' :
+            buy_count = 1 
+            sell_count = 0
+        if action == 'sell' :
+            buy_count = 0
+            sell_count = 1
+            
+        
         finalresult.append({
+            'first_time' : time,
             'token_name' : token_name,
             'token_symbol' : token_symbol,
             'token_address': token_address,
@@ -287,6 +338,7 @@ def update_final_result( new_item, finalresult):
             'sell(Token)': sell_amount,
             'sol_buy' : sol_buy,
             'sol_sell' : sol_sell,
+            'count' : f"{buy_count}/{sell_count}",
             'profit_%' : 'NA',
             'realized_sol' : sol_sell - sol_buy,
             'unrealized_sol' : (buy_amount - sell_amount) * sol_token_price if (buy_amount - sell_amount) > 0 else 0,
@@ -300,12 +352,13 @@ def get_tokens_balances (account_address, transaction_data, signa):
         
     pre_token_balances = transaction_data.get('result', {}).get('meta', {}).get('preTokenBalances', [])
     post_token_balances = transaction_data.get('result', {}).get('meta', {}).get('postTokenBalances', [])
-    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[0]
-    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[0]
+    
     # fee_balance = transaction_data.get('result', {}).get('meta', {}).get('fee')
     # print(post_balance)
     # print(pre_balance)
     # print(fee_balance)
+    pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[0]
+    post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[0]
     sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
     # print(sol_balance)
     if post_token_balances :
@@ -323,19 +376,32 @@ def get_tokens_balances (account_address, transaction_data, signa):
                 token_name = parsed_data['result'][0]['content']['metadata']['name']
                 token_symbol = parsed_data['result'][0]['content']['metadata']['symbol']
                 accountKeys = transaction_data.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-                # print(token_name)
                 
+                transaction_time = oneTransaction.get('result', {}).get('blockTime')
+                utc_datetime = timestamp_to_utc(transaction_time)
+
+                if utc_datetime:
+                    formatted_datetime = format_utc_datetime(utc_datetime)
+                    # print(f"UTC time: {formatted_datetime}")
+                else:
+                    # print("Invalid timestamp")
+                    None
                 
                 where = "Pump" if search_substring(transaction_data, '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P') else "Swap"
                 if search_substring(transaction_data, '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8') :
                     where = "Raydium"
                 # if where == "Pump":
-                #     calculated_pump_token_price = pump_price_calculate(accountKeys)
-                #     if calculated_pump_token_price == 7070 :
-                #         continue
+                #     # calculated_pump_token_price = pump_price_calculate(accountKeys)
+                #     pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[2]
+                #     post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[2]
+                #     sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
+                # #     if calculated_pump_token_price == 7070 :
+                # #         continue
                     
                 # if where == "Raydium" :
-               
+                #     pre_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('preBalances', [])[6]
+                #     post_sol_balance = transaction_data.get('result', {}).get('meta', {}).get('postBalances', [])[6]
+                #     sol_balance = abs(post_sol_balance - pre_sol_balance)/ (1000000000)
                     
               
 
@@ -365,7 +431,9 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             # 'post_amount': post_ui_amount,
                             'buy(Token)': difference,
                             'sell(Sol)' : sol_balance,
-                            'on' : where
+                            'time' : formatted_datetime,
+                            'on' : where,
+                            'action' : "buy"
                         })
                     elif pre_ui_amount > post_ui_amount:
                         results.append({
@@ -378,7 +446,9 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             # 'post_amount': post_ui_amount,
                             'sell(Token)': difference,
                             'buy(Sol)' : sol_balance,
-                            'on' : where
+                            'time' : formatted_datetime,
+                            'on' : where,
+                            'action' : "sell"
                         })
                 else:
                     
@@ -392,7 +462,9 @@ def get_tokens_balances (account_address, transaction_data, signa):
                             # 'post_amount': post_ui_amount,
                             'buy(Token)': post_ui_amount,
                             'sell(Sol)' : sol_balance,
-                            'on' : 'Pump'
+                            'time' : formatted_datetime,
+                            'on' : 'swap',
+                            'action' : "buy"
                         })
                 
 
@@ -406,9 +478,9 @@ if __name__ == "__main__" :
     SignatureList = get_Signaturelist(walletaddress)
  
     k = 1
-    for oneSignature in SignatureList:
+    for oneSignature in reversed(SignatureList):
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 10:
+        if len(finalData) < 30:
             
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
@@ -431,16 +503,18 @@ if __name__ == "__main__" :
     
     
 
-    # oneSignature = "52DkrDFUb5PCu96btwuRAmSqPE21wGfAUqtBKyTmSgkEn22P8dXV5TTutF9VM43D3zHP7SzvYxTz7ihaefKxvxFf"
-    # print("52DkrDFUb5PCu96btwuRAmSqPE21wGfAUqtBKyTmSgkEn22P8dXV5TTutF9VM43D3zHP7SzvYxTz7ihaefKxvxFf")
+    # oneSignature = "4RPJDoxmYNcWkyiL77fARBy349hAChSw7rW5HMGGYH1ZvBo2Lbc6FbZMSYWPPq5W8EfJfzvWJP4Wnac1ZRBuP5oS"
+    # print("4RPJDoxmYNcWkyiL77fARBy349hAChSw7rW5HMGGYH1ZvBo2Lbc6FbZMSYWPPq5W8EfJfzvWJP4Wnac1ZRBuP5oS")
     # oneTransaction = get_transaction(oneSignature)
-    # # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
-    # # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
-    # # # pair_address1 = pair_address[5]['pubkey']
-    # # # pair_address2 = pair_address[6]['pubkey']
-    # # # print("baseVault : ", pair_address1)    
-    # # # print("quoteVault : ",pair_address2)
+    # # # tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
+    # # pair_address = oneTransaction.get('result', {}).get('transaction', {}).get('message', {}).get('accountKeys', [])
+    # # pair_address1 = pair_address[5]['pubkey']
+    # # pair_address2 = pair_address[6]['pubkey']
+    # # print("baseVault : ", pair_address1)    
+    # # print("quoteVault : ",pair_address2)
     # print(oneTransaction)
+    # transaction_time = oneTransaction.get('result', {}).get('blockTime')
+    # print(transaction_time)
     
     
     
