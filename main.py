@@ -318,7 +318,7 @@ def update_final_result( new_item, finalresult):
             else : item['unrealized_sol'] = 0
             item['profit_sol'] = item['realized_sol'] + item['unrealized_sol']
            
-            # return
+            
 
     if flag == 0 :
         if action == 'buy' :
