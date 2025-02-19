@@ -480,7 +480,7 @@ if __name__ == "__main__" :
     k = 1
     for oneSignature in reversed(SignatureList):
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 3:
+        if len(finalData) < 500:
             
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
