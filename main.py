@@ -480,12 +480,12 @@ if __name__ == "__main__" :
     k = 1
     for oneSignature in reversed(SignatureList):
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 30:
+        if len(finalData) < 3:
             
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
-                print("")
-                print(k)
+                # print("")
+                # print(k)
                 # print("")
                 k += 1
                 print(tokenInforBuySellAmount)
@@ -494,9 +494,9 @@ if __name__ == "__main__" :
                 
         else:
             break
-    print("\n")
+    # print("\n")
     print("This is Final reports")
-    print("\n")
+    # print("\n")
     print(finalresult)    
     with open('result.json', 'w') as json_file:
         json.dump(finalresult, json_file, indent=4)        
