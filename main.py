@@ -287,7 +287,8 @@ def update_final_result( new_item, finalresult):
     sol_buy = new_item[0].get('sell(Sol)', 0)
     sol_sell = new_item[0].get('buy(Sol)', 0)
     action = new_item[0].get('action')
-    sol_token_price = float(get_token_price_from_m(token_address)) / (1000000000)
+    # sol_token_price = float(get_token_price_from_m(token_address)) / (1000000000)
+    sol_token_price = 3
     # print("mprice " , sol_token_price)
     # sol_token_price_calculated = new_item[0].get('token_price',0)
     flag = 0
@@ -480,13 +481,13 @@ if __name__ == "__main__" :
     k = 1
     for oneSignature in reversed(SignatureList):
         oneTransaction = get_transaction(oneSignature)
-        if len(finalData) < 500:
+        if len(finalData) < 300:
             
             tokenInforBuySellAmount = get_tokens_balances(WALLET_ADDRESS, oneTransaction, oneSignature)
             if tokenInforBuySellAmount:
-                # print("")
-                # print(k)
-                # print("")
+                print("")
+                print(k)
+                print("")
                 k += 1
                 print(tokenInforBuySellAmount)
                 finalData.append(tokenInforBuySellAmount)
