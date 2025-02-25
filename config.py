@@ -7,8 +7,8 @@ WALLET_ADDRESS = 'GpULtGh24iBCyVLrS4r3cBL4gPULT1LbtGxdk87ZYr3N'
 # YubozzSnKomEnH3pkmYsdatUUwUTcm7s4mHJVmefEWj
 # GpULtGh24iBCyVLrS4r3cBL4gPULT1LbtGxdk87ZYr3N
 
-# from solana.rpc.api import Client
-# from solders.keypair import Keypair #type: ignore
+from solana.rpc.api import Client
+from solders.keypair import Keypair #type: ignore
 
 # PRIV_KEY = "97f3ea30-7f8b-4c10-a368-1160df74ed5b"
 # RPC = "https://mainnet.helius-rpc.com/?api-key="
