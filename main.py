@@ -38,7 +38,7 @@ def format_utc_datetime(utc_datetime):
 
 HELIUS_API_KEY = "97f3ea30-7f8b-4c10-a368-1160df74ed5b"
 PUMP_BONDING_CURVE_PROGRAM_ID = Pubkey.from_string("6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P")
-# Pump fun token price calculate start ============
+# Pump fun token price calculate start ======
 def get_account_info(account_pubkey: Pubkey):
     url = f"https://rpc.helius.xyz/?api-key={HELIUS_API_KEY}"
     headers = {"Content-Type": "application/json"}
