@@ -65,7 +65,7 @@ def get_account_info(account_pubkey: Pubkey):
         print(f"Error: {response.status_code} - {response.text}")
         return None
 
-# Account Structure (YOU MUST FILL THIS IN BASED ON THE PROGRAM'S DATA LAYOUT)
+# Account Data Structure (YOU MUST FILL THIS IN BASED ON THE PROGRAM'S DATA LAYOUT)
 # This is an EXAMPLE - REPLACE WITH THE ACTUAL STRUCTURE
 def decode_bonding_curve_data(data):
     """
