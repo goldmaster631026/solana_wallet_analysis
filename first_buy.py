@@ -30,7 +30,7 @@ def format_utc_datetime(utc_datetime):
     return utc_datetime.strftime('%Y-%m-%d %H:%M:%S UTC')
 
 
-# Example usage:
+# Example use:
 timestamp = 1738717897  # Example timestamp (March 15, 2023, 00:00:00 UTC)
 utc_datetime = timestamp_to_utc(timestamp)
 
